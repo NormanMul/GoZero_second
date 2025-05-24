@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+// QWEN API configuration
 const QWEN_API_KEY = process.env.QWEN_API_KEY;
 const QWEN_API_ENDPOINT = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation';
+const QWEN_TEXT_ENDPOINT = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation';
+
+// Model names - use the correct public aliases
+const QWEN_VISUAL_MODEL = 'qwen-vl-plus'; // Visual model for image analysis
+const QWEN_TEXT_MODEL = 'qwen-turbo';     // Text model for chatbot
 
 // Validate if API key is set
 if (!QWEN_API_KEY) {
@@ -62,34 +68,45 @@ export async function analyzeImage(imageBase64: string): Promise<AnalysisResult>
     }
 
     try {
+      console.log("Analyzing image with QWEN visual model:", QWEN_VISUAL_MODEL);
+      
       const response = await axios.post(
         QWEN_API_ENDPOINT,
         {
-          model: 'qwen-vl-plus',
+          model: QWEN_VISUAL_MODEL,
           input: {
             messages: [
               {
                 role: 'user',
                 content: [
-                  { image: base64Data },
-                  { text: prompt }
+                  { 
+                    image: base64Data 
+                  },
+                  { 
+                    text: prompt 
+                  }
                 ]
               }
             ]
           },
-          parameters: {}
+          parameters: {
+            result_format: "message"
+          }
         },
         {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${QWEN_API_KEY}`
           },
-          timeout: 10000 // 10 second timeout
+          timeout: 15000 // 15 second timeout
         }
       );
 
+      console.log("QWEN API response status:", response.status);
+      
       if (response.data && response.data.output && response.data.output.choices) {
         const content = response.data.output.choices[0].message.content;
+        console.log("QWEN API content sample:", content.substring(0, 100) + "...");
         
         // Extract JSON from the response
         const jsonMatch = content.match(/```json([\s\S]*?)```/) || content.match(/{[\s\S]*?}/);
@@ -97,17 +114,25 @@ export async function analyzeImage(imageBase64: string): Promise<AnalysisResult>
         
         try {
           const result = JSON.parse(jsonStr.replace(/```json|```/g, '').trim());
+          console.log("Successfully parsed result for item:", result.itemName);
           return result;
         } catch (jsonError) {
           console.error("Failed to parse JSON response:", jsonError);
           // Fallback to sample result with error message
           return getSampleResult(imageBase64);
         }
+      } else {
+        console.error("Unexpected API response format:", JSON.stringify(response.data).substring(0, 200));
+        throw new Error("Invalid response structure from QWEN API");
       }
-      
-      throw new Error("Invalid response structure from QWEN API");
-    } catch (apiError) {
-      console.error("Error calling QWEN API:", apiError);
+    } catch (error: any) {
+      console.error("Error calling QWEN API:", error.message || "Unknown error");
+      if (error.response) {
+        console.error("API error details:", 
+          error.response.status, 
+          error.response.data ? JSON.stringify(error.response.data).substring(0, 200) : "No data"
+        );
+      }
       // Return a sample result if API call fails
       return getSampleResult(imageBase64);
     }
@@ -223,16 +248,33 @@ function getSampleResult(imageBase64: string): AnalysisResult {
 // Add chatbot functionality
 export async function getChatbotResponse(request: ChatRequest): Promise<ChatbotResponse> {
   try {
-    let prompt = `You are GoZero, an AI assistant for sustainable waste management. Be helpful, informative, and encouraging about proper waste management, recycling, and sustainability practices. Reply in a friendly, conversational tone.`;
+    let systemPrompt = `You are GoZero, an AI assistant for sustainable waste management. Be helpful, informative, and encouraging about proper waste management, recycling, and sustainability practices. Reply in a friendly, conversational tone.`;
+    
+    // Create a structured conversation
+    const messages = [
+      { role: "system", content: systemPrompt }
+    ];
     
     // Add context about the scanned item if available
     if (request.scanContext) {
-      prompt += `\n\nThe user has just scanned a ${request.scanContext.itemName} made of ${request.scanContext.materialType}. 
-      It is ${request.scanContext.recyclable ? 'recyclable' : 'not recyclable'} and ${request.scanContext.reusable ? 'reusable' : 'not reusable'}.
-      The proper disposal instructions are: ${request.scanContext.disposalInstructions}`;
+      messages.push({
+        role: "user", 
+        content: `I've just scanned a ${request.scanContext.itemName} made of ${request.scanContext.materialType}. 
+        It is ${request.scanContext.recyclable ? 'recyclable' : 'not recyclable'} and ${request.scanContext.reusable ? 'reusable' : 'not reusable'}.
+        The proper disposal instructions are: ${request.scanContext.disposalInstructions}`
+      });
+      
+      messages.push({
+        role: "assistant",
+        content: `Thank you for scanning the ${request.scanContext.itemName}! I can help you understand how to properly handle this item.`
+      });
     }
     
-    prompt += `\n\nUser message: ${request.message}`;
+    // Add the user's current message
+    messages.push({
+      role: "user",
+      content: request.message
+    });
     
     // Check if API key is available before making the request
     if (!QWEN_API_KEY) {
@@ -241,21 +283,18 @@ export async function getChatbotResponse(request: ChatRequest): Promise<ChatbotR
     }
     
     try {
+      console.log("Sending chatbot request to QWEN text model:", QWEN_TEXT_MODEL);
+      
       const response = await axios.post(
-        QWEN_API_ENDPOINT,
+        QWEN_TEXT_ENDPOINT,
         {
-          model: 'qwen-vl-plus',
+          model: QWEN_TEXT_MODEL,
           input: {
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { text: prompt }
-                ]
-              }
-            ]
+            messages: messages
           },
-          parameters: {}
+          parameters: {
+            result_format: "message"
+          }
         },
         {
           headers: {
@@ -266,15 +305,26 @@ export async function getChatbotResponse(request: ChatRequest): Promise<ChatbotR
         }
       );
       
-      if (response.data && response.data.output && response.data.output.choices) {
-        const content = response.data.output.choices[0].message.content;
-        return { message: content };
-      }
+      console.log("QWEN chatbot API response status:", response.status);
       
-      // Fallback to predefined responses if API response doesn't have expected structure
-      return getSmartChatbotResponse(request);
-    } catch (apiError) {
-      console.error("Error calling QWEN API for chatbot:", apiError);
+      if (response.data && response.data.output && response.data.output.choices && 
+          response.data.output.choices[0] && response.data.output.choices[0].message) {
+        const content = response.data.output.choices[0].message.content;
+        console.log("QWEN chatbot response sample:", content.substring(0, 100) + "...");
+        return { message: content };
+      } else {
+        console.error("Unexpected API response format for chatbot:", JSON.stringify(response.data).substring(0, 200));
+        // Fallback to predefined responses if API response doesn't have expected structure
+        return getSmartChatbotResponse(request);
+      }
+    } catch (error: any) {
+      console.error("Error calling QWEN API for chatbot:", error.message || "Unknown error");
+      if (error.response) {
+        console.error("API error details:", 
+          error.response.status, 
+          error.response.data ? JSON.stringify(error.response.data).substring(0, 200) : "No data"
+        );
+      }
       // Fallback to predefined responses if API call fails
       return getSmartChatbotResponse(request);
     }
