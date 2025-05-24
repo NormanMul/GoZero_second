@@ -1,7 +1,18 @@
 import axios from 'axios';
 
-const QWEN_API_KEY = process.env.QWEN_API_KEY || 'sk-b061f6f4dd8c4b6c967f511e7f1727fb';
+const QWEN_API_KEY = process.env.QWEN_API_KEY;
 const QWEN_API_ENDPOINT = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation';
+
+// Add chatbot response functionality
+export interface ChatbotResponse {
+  message: string;
+}
+
+// Interface for chat request
+export interface ChatRequest {
+  message: string;
+  scanContext?: AnalysisResult;
+}
 
 interface AnalysisResult {
   itemName: string;
@@ -105,4 +116,56 @@ function getFallbackResult(aiResponse?: string): AnalysisResult {
       description: "Unable to determine environmental impact for this item."
     }
   };
+}
+
+// Add chatbot functionality
+export async function getChatbotResponse(request: ChatRequest): Promise<ChatbotResponse> {
+  try {
+    let prompt = `You are GoZero, an AI assistant for sustainable waste management. Be helpful, informative, and encouraging about proper waste management, recycling, and sustainability practices. Reply in a friendly, conversational tone.`;
+    
+    // Add context about the scanned item if available
+    if (request.scanContext) {
+      prompt += `\n\nThe user has just scanned a ${request.scanContext.itemName} made of ${request.scanContext.materialType}. 
+      It is ${request.scanContext.recyclable ? 'recyclable' : 'not recyclable'} and ${request.scanContext.reusable ? 'reusable' : 'not reusable'}.
+      The proper disposal instructions are: ${request.scanContext.disposalInstructions}`;
+    }
+    
+    prompt += `\n\nUser message: ${request.message}`;
+    
+    const response = await axios.post(
+      QWEN_API_ENDPOINT,
+      {
+        model: 'qwen-vl-plus',
+        input: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { text: prompt }
+              ]
+            }
+          ]
+        },
+        parameters: {}
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${QWEN_API_KEY}`
+        }
+      }
+    );
+    
+    if (response.data && response.data.output && response.data.output.choices) {
+      const content = response.data.output.choices[0].message.content;
+      return { message: content };
+    }
+    
+    return { message: "I'm sorry, I couldn't process your request. Please try again." };
+  } catch (error) {
+    console.error("Error in chatbot response:", error);
+    return { 
+      message: "I'm having trouble connecting to my knowledge base. Please try again in a moment."
+    };
+  }
 }

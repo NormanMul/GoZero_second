@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { insertScanSchema, insertPickupSchema } from "@shared/schema";
-import { analyzeImage } from "./ai-service";
+import { analyzeImage, getChatbotResponse, ChatRequest } from "./ai-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes prefix
@@ -178,6 +178,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch impact summary" });
+    }
+  });
+  
+  // Chatbot API endpoint
+  apiRouter.post("/chatbot", async (req, res) => {
+    try {
+      const chatRequest: ChatRequest = req.body;
+      
+      if (!chatRequest.message) {
+        return res.status(400).json({ message: "Message is required" });
+      }
+      
+      const response = await getChatbotResponse(chatRequest);
+      res.json(response);
+    } catch (error) {
+      console.error("Error processing chatbot request:", error);
+      res.status(500).json({ message: "Failed to process chatbot request" });
     }
   });
 
