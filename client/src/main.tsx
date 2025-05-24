@@ -18,7 +18,8 @@ library.add(
   faHome, faHistory, faCamera, faMapMarkedAlt, faUser, faBell,
   faTimes, faImage, faArrowLeft, faPlus, faReceipt, faCheck,
   faFilter, faLocationArrow, faDirections, faMotorcycle, 
-  faMapMarkerAlt, faClock, faLeaf, faBottleWater, faMinus
+  faMapMarkerAlt, faClock, faLeaf, faBottleWater, faMinus,
+  faRobot, faCommentAlt, faPaperPlane
 );
 
 // Create a location base with empty path (useful for static deployments)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/layout/app-header";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { ItemDetail } from "@/components/result/item-detail";
 import { EnvironmentalImpact } from "@/components/result/environmental-impact";
 import { DisposalGuide } from "@/components/result/disposal-guide";
@@ -21,35 +21,39 @@ export default function Result() {
   // Fetch the scan data
   const { data: scan, isLoading } = useQuery<Scan>({
     queryKey: [`/api/scans/${scanId}`],
-    enabled: !!scanId && scanId !== "result",
-    onSuccess: (data) => {
-      // If aiResponse is available, parse it to get the recognition result
-      if (data?.aiResponse) {
-        try {
-          const result = typeof data.aiResponse === 'string' 
-            ? JSON.parse(data.aiResponse) 
-            : data.aiResponse;
-          
-          setRecognitionResult({
-            itemName: data.itemName,
-            category: result.category || 'Unknown',
-            recyclable: !!result.recyclable || data.recyclable === 1,
-            reusable: !!result.reusable || data.reusable === 1,
-            materialType: result.materialType || 'Unknown',
-            disposalInstructions: result.disposalInstructions || 'No specific instructions available',
-            environmentalImpact: {
-              co2Saved: data.co2Saved || 0,
-              waterSaved: data.waterSaved || 0,
-              energySaved: data.energySaved || 0,
-              description: result.environmentalImpact?.description || 'No detailed impact information available'
-            }
-          });
-        } catch (error) {
-          console.error('Error parsing AI response:', error);
-        }
+    enabled: !!scanId && scanId !== "result"
+  });
+  
+  // Process scan data when it changes
+  useEffect(() => {
+    if (scan && scan.aiResponse) {
+      try {
+        const result = typeof scan.aiResponse === 'string' 
+          ? JSON.parse(scan.aiResponse) 
+          : scan.aiResponse;
+        
+        // Create a simplified recognition result for the chatbot
+        const recognitionData: RecognitionResult = {
+          itemName: scan.itemName,
+          category: result?.category || 'Unknown',
+          recyclable: result?.recyclable === true || scan.recyclable === 1,
+          reusable: result?.reusable === true || scan.reusable === 1,
+          materialType: result?.materialType || 'Unknown',
+          disposalInstructions: result?.disposalInstructions || 'No specific instructions available',
+          environmentalImpact: {
+            co2Saved: scan.co2Saved || 0,
+            waterSaved: scan.waterSaved || 0,
+            energySaved: scan.energySaved || 0,
+            description: result?.environmentalImpact?.description || 'No detailed impact information available'
+          }
+        };
+        
+        setRecognitionResult(recognitionData);
+      } catch (error) {
+        console.error('Error parsing AI response:', error);
       }
     }
-  });
+  }, [scan]);
   
   // If no scanId in URL and scan was provided via navigation state, redirect
   useEffect(() => {
@@ -125,8 +129,7 @@ export default function Result() {
           isOpen={chatbotOpen} 
           onClose={() => setChatbotOpen(false)} 
           scanContext={recognitionResult}
-          initialMessage={`Hi there! I see you've scanned a ${scan?.itemName || 'waste item'}. 
-            How can I help you with recycling this item?`}
+          initialMessage={`Hi there! I see you've scanned a ${scan?.itemName || 'waste item'}. How can I help you with recycling this item?`}
         />
       </div>
     </div>
