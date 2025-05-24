@@ -1,0 +1,46 @@
+
+Problem & Solution
+Problem: People don't know how to properly recycle/reuse/reduce items, leading to increased waste and missed environmental impact opportunities.
+Solution: AI-powered mobile web app that scans items, categorizes them for recycling, reuse and reduce and connects to GoSend for pickup while tracking environmental impact.
+Hackathon Goals Build working AI item scanner with >80% accuracy on common items
+Demonstrate complete user journey: scan → categorize → order pickup → see impact calculation -> get report/incentive based on recommendation
+Integrate pre-trained multimodal AI via Alibaba Cloud QWEN API
+Core User Journey
+User scans or photo waste item with phone camera
+AI identifies material and recycling category
+App shows environmental impact potential
+User orders GoSend pickup with one click
+System displays contribution (CO2 saved, waste diverted),
+6 can use QR for payment
+Hackathon MVP Features (Must-Have)
+AI Item Scanner: Camera integration with pre-trained multimodal model(qwen visual latest one)
+Smart Categorization: Material type identification (plastic, metal, paper, electronics)
+Impact Calculator: Simple CO2/waste savings display
+GoSend Mockup: Pickup order interface (demo-ready, not full integration)
+Dashboard: Scan history and cumulative impact
+Success Metrics for Demo
+Scan 50+ different items during development
+<3 second response time for AI identification
+Smooth demo flow without crashes
+Clear value proposition demonstration
+Technical Stack
+Frontend: Next.js mobile web app or python for backend
+AI: using  fastAPI and qwen model (use this QWEN api key)
+17446
+sk-b061f6f4dd8c4b6c967f511e7f1727fb
+Default Workspace(llm-pjg2m6oj6eqoq3g1)
+
+
+
+
+Hosting: locally at first then will be Alibaba Cloud Web App Service
+Database: Simple database for scan history
+
+Team Focus Areas
+AI Integration: Prompt engineering for waste identification
+Frontend: Mobile-first UI with camera integration (use in frontend folder)
+Backend: API handling and data processing (use in backend folder)
+Success Definition
+A working prototype that demonstrates the complete AI-powered recycling journey, impresses judges with innovation, and validates the core value proposition 
+⁂
+
