@@ -2,11 +2,12 @@ import axios from 'axios';
 
 // QWEN API configuration
 const QWEN_API_KEY = process.env.QWEN_API_KEY;
-const QWEN_API_ENDPOINT = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation';
-const QWEN_TEXT_ENDPOINT = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation';
+// Updated to use the OpenAI-compatible endpoint for multimodal models
+const QWEN_API_ENDPOINT = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
+const QWEN_TEXT_ENDPOINT = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
 
 // Model names - use the correct public aliases
-const QWEN_VISUAL_MODEL = 'qwen-vl-plus'; // Visual model for image analysis
+const QWEN_VISUAL_MODEL = 'qwen-vl-max'; // Visual model for image analysis (lowercase as per documentation)
 const QWEN_TEXT_MODEL = 'qwen-turbo';     // Text model for chatbot
 
 // Validate if API key is set
@@ -48,7 +49,7 @@ export async function analyzeImage(imageBase64: string): Promise<AnalysisResult>
     const prompt = `Analyze this waste item image. Identify what it is and provide detailed recycling information in this JSON format:
     {
       "itemName": "Name of the item",
-      "category": "One of: Plastic, Paper/Cardboard, Metal, Glass, E-Waste, Organic, Other",
+      "category": "One of: Plastic, Paper/Cardboard, Metal, Glass, E-Waste, Other",
       "recyclable": true/false,
       "reusable": true/false,
       "materialType": "Specific material type (e.g., PET plastic, aluminum, etc.)",
@@ -74,24 +75,23 @@ export async function analyzeImage(imageBase64: string): Promise<AnalysisResult>
         QWEN_API_ENDPOINT,
         {
           model: QWEN_VISUAL_MODEL,
-          input: {
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { 
-                    image: base64Data 
-                  },
-                  { 
-                    text: prompt 
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { 
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/jpeg;base64,${base64Data}`
                   }
-                ]
-              }
-            ]
-          },
-          parameters: {
-            result_format: "message"
-          }
+                },
+                { 
+                  type: 'text',
+                  text: prompt 
+                }
+              ]
+            }
+          ]
         },
         {
           headers: {
@@ -104,8 +104,8 @@ export async function analyzeImage(imageBase64: string): Promise<AnalysisResult>
 
       console.log("QWEN API response status:", response.status);
       
-      if (response.data && response.data.output && response.data.output.choices) {
-        const content = response.data.output.choices[0].message.content;
+      if (response.data && response.data.choices) {
+        const content = response.data.choices[0].message.content;
         console.log("QWEN API content sample:", content.substring(0, 100) + "...");
         
         // Extract JSON from the response
