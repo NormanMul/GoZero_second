@@ -9,7 +9,8 @@ import {
   faHome, faHistory, faCamera, faMapMarkedAlt, faUser, faBell,
   faTimes, faImage, faArrowLeft, faPlus, faReceipt, faCheck,
   faFilter, faLocationArrow, faDirections, faMotorcycle, 
-  faMapMarkerAlt, faClock, faLeaf, faBottleWater, faMinus
+  faMapMarkerAlt, faClock, faLeaf, faBottleWater, faMinus,
+  faRobot, faCommentAlt, faPaperPlane
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to library
