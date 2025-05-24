@@ -75,7 +75,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Make sure we're setting the proper content type
       res.setHeader('Content-Type', 'application/json');
       
-      // Create default values for results display if missing
+      // Create a response with stored AI response data or fallback to defaults
+      const aiResponseData = scan.aiResponse || {
+        itemName: scan.itemName,
+        category: "Plastic",
+        recyclable: scan.recyclable === 1,
+        reusable: scan.reusable === 1,
+        materialType: "PET Plastic",
+        disposalInstructions: "Clean and place in your recycling bin. Remove cap and label if required by your local recycling guidelines.",
+        environmentalImpact: {
+          co2Saved: scan.co2Saved || 0.5,
+          waterSaved: scan.waterSaved || 2.0,
+          energySaved: scan.energySaved || 1.5,
+          description: "Recycling this plastic item helps reduce petroleum consumption and prevents plastic pollution in oceans and landfills."
+        }
+      };
+      
       const result = {
         id: scan.id,
         userId: scan.userId || 1,
@@ -89,20 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reusable: scan.reusable === 1,
         status: scan.status || 'completed',
         createdAt: scan.createdAt || new Date(),
-        aiResponse: {
-          itemName: scan.itemName,
-          category: "Plastic",
-          recyclable: scan.recyclable === 1,
-          reusable: scan.reusable === 1,
-          materialType: "PET Plastic",
-          disposalInstructions: "Clean and place in your recycling bin. Remove cap and label if required by your local recycling guidelines.",
-          environmentalImpact: {
-            co2Saved: scan.co2Saved || 0.5,
-            waterSaved: scan.waterSaved || 2.0,
-            energySaved: scan.energySaved || 1.5,
-            description: "Recycling this plastic item helps reduce petroleum consumption and prevents plastic pollution in oceans and landfills."
-          }
-        }
+        aiResponse: aiResponseData
       };
       
       res.json(result);
@@ -116,6 +118,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/scans", async (req, res) => {
     try {
       const scanData = insertScanSchema.parse(req.body);
+      
+      // Ensure aiResponse is properly stored if available
+      if (!scanData.aiResponse && req.body.aiResponse) {
+        scanData.aiResponse = req.body.aiResponse;
+      }
+      
       const scan = await storage.createScan(scanData);
       
       // If a userId is provided, update their impact score
@@ -146,6 +154,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const result = await analyzeImage(imageBase64);
+      
+      // Log the full AI response structure to verify it contains all fields
+      console.log("AI analysis result full structure:", JSON.stringify(result));
+      
       res.json(result);
     } catch (error) {
       console.error("Error analyzing image:", error);
@@ -216,12 +228,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Calculate a percentage score for user progress (e.g. out of 1000 points)
       const maxScore = 1000;
-      const progressPercentage = Math.min(100, Math.round((user.impactScore / maxScore) * 100));
+      const progressPercentage = Math.min(100, Math.round(((user.impactScore || 0) / maxScore) * 100));
       
       res.json({
         userId: user.id,
         username: user.username,
-        impactScore: user.impactScore,
+        impactScore: user.impactScore || 0,
         progressPercentage,
         co2Saved: totalCO2Saved,
         waterSaved: totalWaterSaved,
@@ -230,6 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         treesSaved,
       });
     } catch (error) {
+      console.error("Error fetching impact summary:", error);
       res.status(500).json({ message: "Failed to fetch impact summary" });
     }
   });

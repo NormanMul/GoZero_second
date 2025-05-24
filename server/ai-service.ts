@@ -106,7 +106,7 @@ export async function analyzeImage(imageBase64: string): Promise<AnalysisResult>
       
       if (response.data && response.data.choices) {
         const content = response.data.choices[0].message.content;
-        console.log("QWEN API content sample:", content.substring(0, 100) + "...");
+        console.log("QWEN API content sample:", content);
         
         // Extract JSON from the response
         const jsonMatch = content.match(/```json([\s\S]*?)```/) || content.match(/{[\s\S]*?}/);

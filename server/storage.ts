@@ -179,7 +179,7 @@ export class MemStorage implements IStorage {
     
     const updatedUser = { 
       ...user, 
-      impactScore: user.impactScore + additionalScore 
+      impactScore: (user.impactScore || 0) + additionalScore 
     };
     this.users.set(userId, updatedUser);
     return updatedUser;
