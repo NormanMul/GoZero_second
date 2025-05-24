@@ -285,16 +285,14 @@ export async function getChatbotResponse(request: ChatRequest): Promise<ChatbotR
     try {
       console.log("Sending chatbot request to QWEN text model:", QWEN_TEXT_MODEL);
       
+      // Debug the messages being sent
+      console.log("Messages being sent to API:", JSON.stringify(messages));
+      
       const response = await axios.post(
         QWEN_TEXT_ENDPOINT,
         {
           model: QWEN_TEXT_MODEL,
-          input: {
-            messages: messages
-          },
-          parameters: {
-            result_format: "message"
-          }
+          messages: messages
         },
         {
           headers: {
@@ -307,9 +305,9 @@ export async function getChatbotResponse(request: ChatRequest): Promise<ChatbotR
       
       console.log("QWEN chatbot API response status:", response.status);
       
-      if (response.data && response.data.output && response.data.output.choices && 
-          response.data.output.choices[0] && response.data.output.choices[0].message) {
-        const content = response.data.output.choices[0].message.content;
+      if (response.data && response.data.choices && 
+          response.data.choices[0] && response.data.choices[0].message) {
+        const content = response.data.choices[0].message.content;
         console.log("QWEN chatbot response sample:", content.substring(0, 100) + "...");
         return { message: content };
       } else {
