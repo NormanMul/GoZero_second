@@ -67,6 +67,21 @@ export function DisposalGuide({ scan, recognitionResult, isLoading = false }: Di
       "Or schedule a pickup through GoZero"
     ];
   }
+  
+  // Clean up steps: remove numeric prefixes and trim, then filter out any empty steps
+  steps = steps.map(step => {
+    // Remove leading numbers like "1.", "1 ", "1) " etc.
+    return step.replace(/^\d+[.\s)]*\s*/i, '').trim();
+  }).filter(step => step.length > 0); // Filter out any empty strings
+  
+  // If we've removed all steps, add back default ones
+  if (steps.length === 0) {
+    steps = [
+      "Check local recycling guidelines for this specific item",
+      "Clean the item if necessary",
+      "Place in appropriate recycling bin"
+    ];
+  }
 
   return (
     <div className="bg-white gozero-shadow rounded-xl p-4 mb-4">
