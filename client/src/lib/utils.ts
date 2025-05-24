@@ -55,10 +55,22 @@ export function compressImage(
       // Get the compressed image as base64 string
       const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
       
-      // Log compression results
+      // Log compression results with detailed information
       const originalSize = base64Image.length;
       const compressedSize = compressedBase64.length;
-      console.log(`Image compressed: ${(originalSize / 1024).toFixed(2)}KB → ${(compressedSize / 1024).toFixed(2)}KB (${((1 - compressedSize / originalSize) * 100).toFixed(1)}% reduction)`);
+      const originalSizeKB = (originalSize / 1024).toFixed(2);
+      const compressedSizeKB = (compressedSize / 1024).toFixed(2);
+      const reductionPercentage = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+      
+      console.log('========== IMAGE COMPRESSION DEBUG INFO ==========');
+      console.log(`Original dimensions: ${img.width}x${img.height}px`);
+      console.log(`Compressed dimensions: ${width}x${height}px`);
+      console.log(`Compression quality: ${quality}`);
+      console.log(`Original size: ${originalSizeKB}KB`);
+      console.log(`Compressed size: ${compressedSizeKB}KB`);
+      console.log(`Reduction: ${reductionPercentage}%`);
+      console.log(`Estimated upload time on 3G: ~${(compressedSize / (750 * 1024)).toFixed(2)}s`);
+      console.log('=================================================');
       
       resolve(compressedBase64);
     };

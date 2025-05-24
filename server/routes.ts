@@ -153,6 +153,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Image data is required" });
       }
       
+      // Log the size of the incoming image for debugging
+      const imageSizeKB = (imageBase64.length * 0.75) / 1024; // approximate size in KB (base64 is ~33% larger than binary)
+      console.log(`[DEBUG] Received image size: ${imageSizeKB.toFixed(2)}KB`);
+      console.log(`[DEBUG] Request body size: ${JSON.stringify(req.body).length / 1024}KB`);
+      
       const result = await analyzeImage(imageBase64);
       
       // Log the full AI response structure to verify it contains all fields
