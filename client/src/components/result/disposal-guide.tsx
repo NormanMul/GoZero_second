@@ -9,8 +9,8 @@ interface DisposalGuideProps {
 }
 
 export function DisposalGuide({ scan, recognitionResult, isLoading = false }: DisposalGuideProps) {
-  // Use either the scan's AI response or the direct recognition result
-  const result = (scan?.aiResponse as RecognitionResult) || recognitionResult;
+  // Always prioritize the direct recognition result passed from the parent
+  const result = recognitionResult;
   
   if (isLoading) {
     return (

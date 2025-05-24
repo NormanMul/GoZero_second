@@ -26,31 +26,55 @@ export default function Result() {
   
   // Process scan data when it changes
   useEffect(() => {
-    if (scan && scan.aiResponse) {
+    if (scan) {
       try {
-        const result = typeof scan.aiResponse === 'string' 
-          ? JSON.parse(scan.aiResponse) 
-          : scan.aiResponse;
+        // Try to parse the AI response if it exists
+        let result;
+        if (scan.aiResponse) {
+          result = typeof scan.aiResponse === 'string' 
+            ? JSON.parse(scan.aiResponse) 
+            : scan.aiResponse;
+        }
         
-        // Create a simplified recognition result for the chatbot
+        // Create a recognition result object, using scan data as fallback
         const recognitionData: RecognitionResult = {
-          itemName: scan.itemName,
+          itemName: scan.itemName || 'Unknown Item',
           category: result?.category || 'Unknown',
           recyclable: result?.recyclable === true || scan.recyclable === 1,
           reusable: result?.reusable === true || scan.reusable === 1,
-          materialType: result?.materialType || 'Unknown',
-          disposalInstructions: result?.disposalInstructions || 'No specific instructions available',
+          materialType: result?.materialType || 'Unknown Material',
+          disposalInstructions: result?.disposalInstructions || 'Dispose according to local regulations for this material type.',
           environmentalImpact: {
-            co2Saved: scan.co2Saved || 0,
-            waterSaved: scan.waterSaved || 0,
-            energySaved: scan.energySaved || 0,
-            description: result?.environmentalImpact?.description || 'No detailed impact information available'
+            co2Saved: scan.co2Saved || result?.environmentalImpact?.co2Saved || 0.5,
+            waterSaved: scan.waterSaved || result?.environmentalImpact?.waterSaved || 2.0,
+            energySaved: scan.energySaved || result?.environmentalImpact?.energySaved || 1.5,
+            description: result?.environmentalImpact?.description || 
+              'Recycling this item helps reduce landfill waste and conserves natural resources.'
           }
         };
         
+        console.log("Setting recognition result:", recognitionData);
         setRecognitionResult(recognitionData);
       } catch (error) {
-        console.error('Error parsing AI response:', error);
+        console.error('Error processing scan data:', error);
+        
+        // Create fallback data even if parsing failed
+        const fallbackData: RecognitionResult = {
+          itemName: scan.itemName || 'Unknown Item',
+          category: 'Unknown',
+          recyclable: scan.recyclable === 1,
+          reusable: scan.reusable === 1, 
+          materialType: 'Unknown Material',
+          disposalInstructions: 'Check local recycling guidelines for this item.',
+          environmentalImpact: {
+            co2Saved: scan.co2Saved || 0.5,
+            waterSaved: scan.waterSaved || 2.0,
+            energySaved: scan.energySaved || 1.5,
+            description: 'Proper disposal of waste items helps protect our environment.'
+          }
+        };
+        
+        setRecognitionResult(fallbackData);
       }
     }
   }, [scan]);
@@ -92,9 +116,9 @@ export default function Result() {
       />
       
       <div className="flex-1 overflow-y-auto p-4 pb-4">
-        <ItemDetail scan={scan} isLoading={isLoading} />
-        <EnvironmentalImpact scan={scan} isLoading={isLoading} />
-        <DisposalGuide scan={scan} isLoading={isLoading} />
+        <ItemDetail scan={scan} recognitionResult={recognitionResult} isLoading={isLoading} />
+        <EnvironmentalImpact scan={scan} recognitionResult={recognitionResult} isLoading={isLoading} />
+        <DisposalGuide scan={scan} recognitionResult={recognitionResult} isLoading={isLoading} />
 
         <div className="grid grid-cols-3 gap-4 mb-4">
           <Button

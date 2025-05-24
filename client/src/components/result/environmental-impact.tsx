@@ -9,8 +9,8 @@ interface EnvironmentalImpactProps {
 }
 
 export function EnvironmentalImpact({ scan, recognitionResult, isLoading = false }: EnvironmentalImpactProps) {
-  // Use either the scan's AI response or the direct recognition result
-  const result = (scan?.aiResponse as RecognitionResult) || recognitionResult;
+  // Always prioritize the direct recognition result over the scan data
+  const result = recognitionResult;
   
   if (isLoading) {
     return (
