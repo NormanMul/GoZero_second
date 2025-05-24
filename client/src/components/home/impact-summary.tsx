@@ -2,10 +2,23 @@ import { useQuery } from '@tanstack/react-query';
 import { ImpactSummary } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Dummy impact data for better first-time user experience
+const dummyImpactData: ImpactSummary = {
+  userId: 1,
+  username: "User",
+  impactScore: 120,
+  progressPercentage: 45,
+  co2Saved: 1.4,
+  waterSaved: 355,
+  energySaved: 5.2,
+  itemsRecycled: 3,
+  treesSaved: 0.2
+};
+
 export function ImpactSummaryCard() {
   const userId = parseInt(localStorage.getItem('currentUserId') || '1');
   
-  const { data: impactData, isLoading } = useQuery<ImpactSummary>({
+  const { data: impactData, isLoading, isError } = useQuery<ImpactSummary>({
     queryKey: [`/api/impact-summary?userId=${userId}`],
   });
 
@@ -17,11 +30,14 @@ export function ImpactSummaryCard() {
     );
   }
 
-  // Fallback values if data isn't available
-  const progress = impactData?.progressPercentage || 0;
-  const co2Saved = impactData?.co2Saved || 0;
-  const itemsRecycled = impactData?.itemsRecycled || 0;
-  const treesSaved = impactData?.treesSaved || 0;
+  // Use dummy data if actual data is not available
+  const displayData = (impactData && !isError) ? impactData : dummyImpactData;
+  
+  // Get values from either real or dummy data
+  const progress = displayData.progressPercentage;
+  const co2Saved = displayData.co2Saved;
+  const itemsRecycled = displayData.itemsRecycled;
+  const treesSaved = displayData.treesSaved;
 
   // Calculate the stroke-dashoffset for the progress ring
   const calculateOffset = (percent: number) => {
