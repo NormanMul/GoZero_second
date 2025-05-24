@@ -14,7 +14,7 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function compressImage(
   base64Image: string,
-  maxWidth = 480,
+  maxWidth = 600,
   quality = 0.7
 ): Promise<string> {
   return new Promise((resolve, reject) => {
