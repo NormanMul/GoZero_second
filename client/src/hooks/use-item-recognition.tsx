@@ -3,6 +3,7 @@ import { analyzeImage } from '@/lib/ai-service';
 import { apiRequest } from '@/lib/queryClient';
 import { RecognitionResult, Scan } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { compressImage } from '@/lib/utils';
 
 export function useItemRecognition() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -13,8 +14,11 @@ export function useItemRecognition() {
   const recognizeItem = async (imageBase64: string) => {
     setIsAnalyzing(true);
     try {
-      // Send the image to the AI service for analysis
-      const result = await analyzeImage(imageBase64);
+      // Compress the image before sending to the server
+      const compressedImage = await compressImage(imageBase64);
+      
+      // Send the compressed image to the AI service for analysis
+      const result = await analyzeImage(compressedImage);
       setRecognitionResult(result);
       
       // Get the current user from localStorage
@@ -23,7 +27,7 @@ export function useItemRecognition() {
       // Create a scan record in the database
       const scanData = {
         userId,
-        imageUrl: imageBase64,
+        imageUrl: compressedImage, // Store the compressed image
         itemName: result.itemName,
         categoryId: null, // We'll need to map to our categories or create a new one
         co2Saved: result.environmentalImpact.co2Saved,
