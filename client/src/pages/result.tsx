@@ -121,14 +121,26 @@ export default function Result() {
         <DisposalGuide scan={scan} recognitionResult={recognitionResult} isLoading={isLoading} />
 
         <div className="grid grid-cols-3 gap-4 mb-4">
-          <Button
-            variant="outline"
-            className="bg-white gozero-shadow rounded-xl p-4 flex items-center justify-center"
-            onClick={handleGoToMap}
-          >
-            <FontAwesomeIcon icon="map-marker-alt" className="text-[#00AA13] mr-2" />
-            <span className="text-sm font-medium">Find Drop-off</span>
-          </Button>
+          {/* Conditionally render drop-off button based on recyclability */}
+          {recognitionResult?.recyclable ? (
+            <Button
+              variant="outline"
+              className="bg-white gozero-shadow rounded-xl p-4 flex items-center justify-center"
+              onClick={handleGoToMap}
+            >
+              <FontAwesomeIcon icon="map-marker-alt" className="text-[#00AA13] mr-2" />
+              <span className="text-sm font-medium">Find Drop-off</span>
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              disabled
+              className="bg-gray-100 rounded-xl p-4 flex items-center justify-center opacity-50 cursor-not-allowed"
+            >
+              <FontAwesomeIcon icon="ban" className="text-gray-400 mr-2" />
+              <span className="text-sm font-medium text-gray-400">No Drop-off Sites</span>
+            </Button>
+          )}
           
           {/* Conditionally render pickup button based on recyclability */}
           {recognitionResult?.recyclable ? (
@@ -150,14 +162,24 @@ export default function Result() {
             </Button>
           )}
           
-          <Button
-            variant="outline"
-            className="bg-white gozero-shadow rounded-xl p-4 flex items-center justify-center"
-            onClick={handleOpenChat}
-          >
-            <FontAwesomeIcon icon="comment-alt" className="text-[#9C27B0] mr-2" />
-            <span className="text-sm font-medium">Ask GoZero</span>
-          </Button>
+          {/* Conditional CSS tooltip for non-recyclable items */}
+          <div className="relative group">
+            <Button
+              variant="outline"
+              className="bg-white gozero-shadow rounded-xl p-4 flex items-center justify-center"
+              onClick={handleOpenChat}
+            >
+              <FontAwesomeIcon icon="comment-alt" className="text-[#9C27B0] mr-2" />
+              <span className="text-sm font-medium">Ask GoZero</span>
+            </Button>
+            {/* Show tooltip only for non-recyclable items */}
+            {recognitionResult?.recyclable === false && (
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
+                Need help with disposal? Ask GoZero for guidance!
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Chatbot Component */}
@@ -165,7 +187,11 @@ export default function Result() {
           isOpen={chatbotOpen} 
           onClose={() => setChatbotOpen(false)} 
           scanContext={recognitionResult}
-          initialMessage={`Hi there! I see you've scanned a ${scan?.itemName || 'waste item'}. How can I help you with recycling this item?`}
+          initialMessage={
+            recognitionResult?.recyclable === false
+              ? `Hi there! I see you've scanned a ${scan?.itemName || 'waste item'} that isn't recyclable through our pickup service. I can help you find the best disposal options for this item. What would you like to know?`
+              : `Hi there! I see you've scanned a ${scan?.itemName || 'waste item'}. How can I help you with recycling this item?`
+          }
         />
       </div>
     </div>
