@@ -30,9 +30,12 @@ interface AnalysisResult {
   itemName: string;
   category: string;
   recyclable: boolean;
+  compostable: boolean;
   reusable: boolean;
   materialType: string;
   disposalInstructions: string;
+  organicMatterPresent: boolean;
+  containerMaterial?: string;
   environmentalImpact: {
     co2Saved: number;
     waterSaved: number;
@@ -46,36 +49,68 @@ export async function analyzeImage(imageBase64: string): Promise<AnalysisResult>
     // Remove the data:image prefix if present
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     
-    const prompt = `Analyze this waste item image carefully. First determine if the item contains organic matter (food, plant material) or if it's a container with food residue.
+    const prompt = `You are a recycling expert AI. Analyze this waste item image using this PRIORITY-BASED CLASSIFICATION:
 
-1. If it's PURELY ORGANIC MATTER (like fruit peels, food scraps, plant waste):
-   - Classify as "Organic/Compostable"
-   - Mark as NOT recyclable in traditional recycling systems
-   - Provide composting instructions
+**STEP 1: ORGANIC MATTER CHECK (HIGHEST PRIORITY)**
+First, determine if this item contains ANY organic matter:
+- Fresh food (fruits, vegetables, meat, dairy, bread)
+- Food scraps, peels, or rinds
+- Plant material (leaves, flowers, wood, grass)
+- Biodegradable organic matter
+- Food waste or spoiled items
 
-2. If it's a CONTAINER WITH FOOD (like a half-empty yogurt cup):
-   - Focus on the container material
-   - Provide instructions for cleaning before recycling
-   - Note that food residue must be removed
+If organic matter is present:
+- Category: "Organic/Compostable" 
+- Recyclable: false
+- Compostable: true
+- Focus on composting/organic waste disposal
 
-3. If it's MULTIPLE MATERIALS (like packaging with plastic and paper):
-   - Identify each component separately
-   - Explain how to separate components if needed
+**STEP 2: CONTAINER ANALYSIS (IF ORGANIC MATTER PRESENT)**
+If you see a container WITH food/organic residue:
+- Identify the container material separately
+- Provide cleaning instructions for the container
+- Note: "Container recyclable only after thorough cleaning and removal of all organic matter"
+- Set organicMatterPresent: true and containerMaterial: [material type]
 
-Provide detailed recycling information in this JSON format:
+**STEP 3: TRADITIONAL RECYCLABLE CLASSIFICATION (ONLY IF NO ORGANIC MATTER)**
+Only if NO organic matter is detected, classify as:
+- Plastic (specify type: PET, HDPE, PP, PS, etc.)
+- Paper/Cardboard (clean and dry only)
+- Metal (aluminum, steel, tin)
+- Glass (clear, green, brown)
+- E-Waste (electronics, batteries, bulbs)
+- Mixed Materials (specify each component)
+- Other (non-recyclable items)
+
+**CRITICAL RULES:**
+1. Organic matter ALWAYS takes priority over container material
+2. Any visible food contamination = NOT recyclable until cleaned
+3. When uncertain about organic content, lean toward classifying as organic/compostable
+4. For mixed items, separate each component in disposal instructions
+5. Fresh produce = always organic/compostable, never recyclable
+
+**EXAMPLE CLASSIFICATIONS:**
+- Banana peel → Organic/Compostable (never recyclable)
+- Apple core → Organic/Compostable (never recyclable)
+- Yogurt cup with residue → organicMatterPresent: true, containerMaterial: "Plastic", focus on cleaning
+- Clean plastic bottle → Plastic, recyclable: true
+
+Provide response in this exact JSON format:
 {
-  "itemName": "Name of the item",
-  "category": "One of: Plastic, Paper/Cardboard, Metal, Glass, E-Waste, Organic/Compostable, Mixed, Other",
+  "itemName": "Descriptive name of the item",
+  "category": "One of: Organic/Compostable, Plastic, Paper/Cardboard, Metal, Glass, E-Waste, Mixed, Other",
   "recyclable": true/false,
   "compostable": true/false,
   "reusable": true/false,
-  "materialType": "Specific material type (e.g., PET plastic, food waste, aluminum, etc.)",
-  "disposalInstructions": "Step by step instructions for proper disposal, including separation of components if applicable",
+  "materialType": "Specific material (e.g., banana peel, PET plastic, aluminum, food waste, etc.)",
+  "disposalInstructions": "Step-by-step instructions prioritizing organic matter disposal, then container cleaning if applicable",
+  "organicMatterPresent": true/false,
+  "containerMaterial": "If applicable, the material of any container holding organic matter",
   "environmentalImpact": {
     "co2Saved": estimated CO2 saved in kg (number),
-    "waterSaved": estimated water saved in liters (number),
+    "waterSaved": estimated water saved in liters (number), 
     "energySaved": estimated energy saved in kWh (number),
-    "description": "Brief fact about environmental impact of properly disposing this item"
+    "description": "Environmental impact of proper disposal method (composting for organic, recycling for clean materials)"
   }
 }`;
 
@@ -166,9 +201,12 @@ function getFallbackResult(aiResponse?: string): AnalysisResult {
     itemName: "Unidentified Item",
     category: "Other",
     recyclable: false,
+    compostable: false,
     reusable: false,
     materialType: "Unknown",
     disposalInstructions: "Please try again with a clearer image or consult local recycling guidelines.",
+    organicMatterPresent: false,
+    containerMaterial: undefined,
     environmentalImpact: {
       co2Saved: 0,
       waterSaved: 0,
@@ -190,9 +228,12 @@ function getSampleResult(imageBase64: string): AnalysisResult {
       itemName: "Plastic Water Bottle",
       category: "Plastic",
       recyclable: true,
+      compostable: false,
       reusable: true,
       materialType: "PET plastic (Type 1)",
       disposalInstructions: "1. Empty and rinse the bottle. 2. Remove the cap (can be recycled separately). 3. Place in recycling bin with plastic items.",
+      organicMatterPresent: false,
+      containerMaterial: "PET plastic",
       environmentalImpact: {
         co2Saved: 0.3,
         waterSaved: 85,
@@ -204,9 +245,12 @@ function getSampleResult(imageBase64: string): AnalysisResult {
       itemName: "Cardboard Box",
       category: "Paper/Cardboard",
       recyclable: true,
+      compostable: false,
       reusable: true,
       materialType: "Corrugated cardboard",
       disposalInstructions: "1. Remove any tape, labels, or non-paper items. 2. Flatten the box to save space. 3. Place in recycling bin designated for paper products.",
+      organicMatterPresent: false,
+      containerMaterial: undefined,
       environmentalImpact: {
         co2Saved: 0.5,
         waterSaved: 120,
@@ -218,9 +262,12 @@ function getSampleResult(imageBase64: string): AnalysisResult {
       itemName: "Aluminum Can",
       category: "Metal",
       recyclable: true,
+      compostable: false,
       reusable: false,
       materialType: "Aluminum",
       disposalInstructions: "1. Empty and rinse the can. 2. You can crush it to save space (optional). 3. Place in recycling bin for metals.",
+      organicMatterPresent: false,
+      containerMaterial: undefined,
       environmentalImpact: {
         co2Saved: 0.9,
         waterSaved: 100,
@@ -232,9 +279,12 @@ function getSampleResult(imageBase64: string): AnalysisResult {
       itemName: "Glass Bottle",
       category: "Glass",
       recyclable: true,
+      compostable: false,
       reusable: true,
       materialType: "Clear glass",
       disposalInstructions: "1. Empty and rinse the bottle. 2. Remove any non-glass components like caps. 3. Place in glass recycling bin or container.",
+      organicMatterPresent: false,
+      containerMaterial: undefined,
       environmentalImpact: {
         co2Saved: 0.6,
         waterSaved: 50,
@@ -246,14 +296,34 @@ function getSampleResult(imageBase64: string): AnalysisResult {
       itemName: "Smartphone",
       category: "E-Waste",
       recyclable: true,
+      compostable: false,
       reusable: true,
       materialType: "Mixed electronics (contains precious metals, plastics, glass)",
       disposalInstructions: "1. Back up and erase your data. 2. Remove any batteries if possible. 3. Take to an e-waste recycling center or retailer with take-back program.",
+      organicMatterPresent: false,
+      containerMaterial: undefined,
       environmentalImpact: {
         co2Saved: 25.0,
         waterSaved: 1200,
         energySaved: 35.0,
         description: "Recycling 1 million smartphones recovers approximately 35,000 pounds of copper, 772 pounds of silver, and 75 pounds of gold."
+      }
+    },
+    {
+      itemName: "Banana Peel",
+      category: "Organic/Compostable",
+      recyclable: false,
+      compostable: true,
+      reusable: false,
+      materialType: "Organic food waste",
+      disposalInstructions: "1. Add to home compost bin or municipal organic waste collection. 2. If no composting available, dispose in regular waste but consider starting a compost. 3. Never put in recycling bins as it contaminates other materials.",
+      organicMatterPresent: true,
+      containerMaterial: undefined,
+      environmentalImpact: {
+        co2Saved: 0.1,
+        waterSaved: 0,
+        energySaved: 0,
+        description: "Composting organic waste like banana peels reduces methane emissions from landfills and creates nutrient-rich soil."
       }
     }
   ];
