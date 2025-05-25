@@ -1,5 +1,7 @@
 # GoZero
 
+**GoZero - Personal Sustainability Assistant**
+
 **Demo:** [https://gozero.veeda.space](https://gozero.veeda.space)
 
 ## Overview
