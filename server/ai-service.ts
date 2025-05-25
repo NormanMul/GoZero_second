@@ -46,21 +46,38 @@ export async function analyzeImage(imageBase64: string): Promise<AnalysisResult>
     // Remove the data:image prefix if present
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     
-    const prompt = `Analyze this waste item image. Identify what it is and provide detailed recycling information in this JSON format:
-    {
-      "itemName": "Name of the item",
-      "category": "One of: Plastic, Paper/Cardboard, Metal, Glass, E-Waste, Other",
-      "recyclable": true/false,
-      "reusable": true/false,
-      "materialType": "Specific material type (e.g., PET plastic, aluminum, etc.)",
-      "disposalInstructions": "Step by step instructions for proper disposal",
-      "environmentalImpact": {
-        "co2Saved": estimated CO2 saved in kg (number),
-        "waterSaved": estimated water saved in liters (number),
-        "energySaved": estimated energy saved in kWh (number),
-        "description": "Brief fact about environmental impact of recycling this item"
-      }
-    }`;
+    const prompt = `Analyze this waste item image carefully. First determine if the item contains organic matter (food, plant material) or if it's a container with food residue.
+
+1. If it's PURELY ORGANIC MATTER (like fruit peels, food scraps, plant waste):
+   - Classify as "Organic/Compostable"
+   - Mark as NOT recyclable in traditional recycling systems
+   - Provide composting instructions
+
+2. If it's a CONTAINER WITH FOOD (like a half-empty yogurt cup):
+   - Focus on the container material
+   - Provide instructions for cleaning before recycling
+   - Note that food residue must be removed
+
+3. If it's MULTIPLE MATERIALS (like packaging with plastic and paper):
+   - Identify each component separately
+   - Explain how to separate components if needed
+
+Provide detailed recycling information in this JSON format:
+{
+  "itemName": "Name of the item",
+  "category": "One of: Plastic, Paper/Cardboard, Metal, Glass, E-Waste, Organic/Compostable, Mixed, Other",
+  "recyclable": true/false,
+  "compostable": true/false,
+  "reusable": true/false,
+  "materialType": "Specific material type (e.g., PET plastic, food waste, aluminum, etc.)",
+  "disposalInstructions": "Step by step instructions for proper disposal, including separation of components if applicable",
+  "environmentalImpact": {
+    "co2Saved": estimated CO2 saved in kg (number),
+    "waterSaved": estimated water saved in liters (number),
+    "energySaved": estimated energy saved in kWh (number),
+    "description": "Brief fact about environmental impact of properly disposing this item"
+  }
+}`;
 
     // Check if API key is available before making the request
     if (!QWEN_API_KEY) {
