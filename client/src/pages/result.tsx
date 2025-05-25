@@ -130,13 +130,25 @@ export default function Result() {
             <span className="text-sm font-medium">Find Drop-off</span>
           </Button>
           
-          <Button
-            className="bg-[#00AA13] rounded-xl p-4 flex items-center justify-center text-white"
-            onClick={handleGoToPickup}
-          >
-            <FontAwesomeIcon icon="motorcycle" className="mr-2" />
-            <span className="text-sm font-medium">Request Pickup</span>
-          </Button>
+          {/* Conditionally render pickup button based on recyclability */}
+          {recognitionResult?.recyclable ? (
+            <Button
+              className="bg-[#00AA13] rounded-xl p-4 flex items-center justify-center text-white"
+              onClick={handleGoToPickup}
+            >
+              <FontAwesomeIcon icon="motorcycle" className="mr-2" />
+              <span className="text-sm font-medium">Request Pickup</span>
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              disabled
+              className="bg-gray-100 rounded-xl p-4 flex items-center justify-center opacity-50 cursor-not-allowed"
+            >
+              <FontAwesomeIcon icon="ban" className="text-gray-400 mr-2" />
+              <span className="text-sm font-medium text-gray-400">No Pickup Available</span>
+            </Button>
+          )}
           
           <Button
             variant="outline"

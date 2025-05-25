@@ -33,9 +33,19 @@ export default function Pickup() {
   // Add scan to selected scans when loaded
   useEffect(() => {
     if (scan && !selectedScans.includes(scan.id)) {
+      // Check if the item is recyclable before allowing pickup
+      if (!scan.recyclable) {
+        toast({
+          title: "Pickup Not Available",
+          description: "This item is not recyclable and cannot be scheduled for pickup. Please check disposal options instead.",
+          variant: "destructive",
+        });
+        navigate(`/result/${scan.id}`);
+        return;
+      }
       setSelectedScans([...selectedScans, scan.id]);
     }
-  }, [scan]);
+  }, [scan, navigate, toast]);
 
   // Create pickup mutation
   const createPickupMutation = useMutation({
